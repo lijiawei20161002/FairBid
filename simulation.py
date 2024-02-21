@@ -71,6 +71,30 @@ class Simulator:
     def simulate_dat_algorithm(self, users, resources):
         platform = DATCloudPlatform(users, resources)
         return platform.allocate_resources(self.FIXED_PRICE, self.ALPHA)
+    
+    # Calculate VCG price
+    def update_fixed_price(self):
+        # Calculate the total revenue with all users
+        total_value_with_all = self.calculate_offline_optimal_revenue(self.users, self.resources)
+
+        vcg_payments = []
+        for user in self.users:
+            # Temporarily exclude the current user from the list
+            users_without_current = [u for u in self.users if u.id != user.id]
+
+            # Calculate the total revenue without the current user
+            total_value_without_user = self.calculate_offline_optimal_revenue(users_without_current, self.resources)
+
+            # The VCG payment for the current user is the difference in total value
+            vcg_payment = total_value_with_all - total_value_without_user
+            vcg_payments.append(vcg_payment)
+
+        # Update FIXED_PRICE based on the VCG payments
+        if vcg_payments:  # Ensure the list is not empty to avoid division by zero
+            self.FIXED_PRICE = sum(vcg_payments)* BETA
+        else:
+            self.FIXED_PRICE = 0  # Or some default value if no users exist
+        return self.FIXED_PRICE
 
     # Function for random allocation simulation
     def simulate_random_allocation(self, users, resources):
